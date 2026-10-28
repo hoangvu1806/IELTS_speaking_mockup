@@ -1,0 +1,15 @@
+torch>=2.6
+torchaudio>=2.6
+transformers>=4.45
+huggingface_hub
+fastapi
+uvicorn
+python-multipart
+soundfile
+numpy
+librosa
+nltk
+requests
+python-dotenv
+# optional: neural G2P for words not in CMUdict
+g2p_en
