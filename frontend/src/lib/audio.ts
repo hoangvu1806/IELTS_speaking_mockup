@@ -60,16 +60,25 @@ export class Recorder {
     const source = ctx().createMediaStreamSource(this.stream)
     const analyser = ctx().createAnalyser()
     analyser.fftSize = 1024
+    // voiceRatio() is only reached on loud frames, so the default 0.8 smoothing would blend
+    // each spectrum with whatever was measured the last time it ran - often silence from
+    // seconds earlier, which reads as "not speech" for the first frames of every utterance.
+    analyser.smoothingTimeConstant = 0
     source.connect(analyser)
     const buf = new Float32Array(analyser.fftSize)
     const spec = new Float32Array(analyser.frequencyBinCount)
     const binHz = ctx().sampleRate / analyser.fftSize
     const bandLo = Math.floor(250 / binHz), bandHi = Math.ceil(3500 / binHz)
+    // Compare against 80 Hz - 8 kHz, not the whole spectrum: otherwise the test depends on the
+    // capture rate. At 48 kHz more than half the bins sit above 8 kHz and hold only mic
+    // self-noise, which on digital mic arrays drags a clear voice to ~0.47, under the gate.
+    const totLo = Math.max(1, Math.floor(80 / binHz))
+    const totHi = Math.min(analyser.frequencyBinCount - 1, Math.ceil(8000 / binHz))
     /** share of spectral energy inside the speech band: low for fans/hum, low for clicks */
     const voiceRatio = () => {
       analyser.getFloatFrequencyData(spec)
       let band = 0, total = 0
-      for (let i = 1; i < spec.length; i++) {
+      for (let i = totLo; i <= totHi; i++) {
         const p = 10 ** (spec[i] / 10)
         total += p
         if (i >= bandLo && i <= bandHi) band += p
