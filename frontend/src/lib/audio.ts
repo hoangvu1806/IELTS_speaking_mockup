@@ -19,6 +19,9 @@ export interface VadOptions {
   onNoSpeech?: () => void
   /** total voiced time required before a take is accepted (default 500 ms; lower for single words) */
   minUtterMs?: number
+  /** sustained voiced energy needed to call it speech (default 240 ms; lower for single words,
+   *  where only the vowel clears the speech band - "think" voices for barely 200 ms) */
+  minStartMs?: number
 }
 
 export interface RecorderOptions {
@@ -104,7 +107,7 @@ export class Recorder {
       if (DEBUG) console.log(`vad t=${t.toFixed(0)} rms=${rms.toFixed(4)} noise=${noise.toFixed(4)} on=${on.toFixed(4)} voiced=${voiced} speaking=${speaking} total=${voicedTotal}`)
       if (!speaking) {
         voicedMs = voiced ? voicedMs + TICK_MS : Math.max(0, voicedMs - 2 * TICK_MS)
-        if (voicedMs >= MIN_START_MS) {
+        if (voicedMs >= (vad.minStartMs ?? MIN_START_MS)) {
           speaking = true
           silentMs = 0
           voicedTotal = voicedMs

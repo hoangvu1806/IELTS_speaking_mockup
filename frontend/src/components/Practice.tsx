@@ -117,7 +117,11 @@ export function Practice({ text, accent, strictness, position, onPrev, onNext, o
     const nWords = text.trim().split(/\s+/).length
     const vad = autoStop || shadow ? {
       silenceMs: nWords <= 1 ? 700 : 1200,
-      minUtterMs: nWords <= 2 ? 240 : 500,
+      // A one-syllable word carries far less voiced energy than the defaults assume: in
+      // "think" the /th/ sits above the speech band and /k/ is a silent stop, leaving only
+      // ~200 ms of vowel - under the generic 240 ms the word could never start a take.
+      minStartMs: nWords <= 2 ? 120 : undefined,
+      minUtterMs: nWords <= 2 ? 150 : 500,
       onFalseStart: () => setSpeaking(false),
       noSpeechMs: 8000,
       onSpeechStart: () => setSpeaking(true),
