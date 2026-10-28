@@ -32,6 +32,7 @@ const CALIBRATE_MS = 500   // then measure the background noise floor
 const MIN_START_MS = 240   // sustained voiced energy needed to call it speech
 const MIN_UTTER_MS = 500   // total voiced time needed before a take is sent
 const VOICE_BAND_RATIO = 0.55 // share of energy in the 250-3500 Hz speech band
+const NOISE_MAX = 0.03     // a real room floor never reaches this: above it we measured a voice
 const DEBUG = (() => {
   try {
     return localStorage.getItem('vad-debug') === '1'
@@ -92,7 +93,9 @@ export class Recorder {
       }
       if (calib.length) {
         calib.sort((a, b) => a - b)
-        noise = calib[Math.floor(calib.length / 2)] // median: one click can't skew it
+        // 20th percentile rather than the median: learners routinely start talking inside the
+        // calibration window, and a median then measures their voice instead of the room.
+        noise = Math.min(calib[Math.floor(calib.length * 0.2)], NOISE_MAX)
         calib.length = 0
       }
       const on = Math.max(0.02, noise * 3.5)    // enter speech
@@ -106,8 +109,11 @@ export class Recorder {
           silentMs = 0
           voicedTotal = voicedMs
           vad.onSpeechStart?.()
-        } else if (rms < off) {
-          noise = noise * 0.97 + rms * 0.03  // keep tracking slow background changes
+        } else {
+          // Minimum statistics: fall fast to any new low, rise only by a crawl. Speech always
+          // sits above the floor, so it can no longer drag the floor up behind it and lock
+          // itself out - the old rule let a loud start pin the threshold past the timeout.
+          noise = Math.min(rms < noise ? noise * 0.7 + rms * 0.3 : noise * 1.001, NOISE_MAX)
         }
         if (!speaking && vad.noSpeechMs && t > vad.noSpeechMs) {
           done = true
