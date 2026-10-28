@@ -25,7 +25,10 @@ export interface VadOptions {
 }
 
 export interface RecorderOptions {
-  /** cancel speaker output picked up by the mic (needed when the AI talks through speakers) */
+  /** Cancel speaker output picked up by the mic. Defaults to true, which is also the browser
+   *  default: asking for false makes Chrome open the raw capture path, and on Windows machines
+   *  with vendor DSP (Intel Smart Sound and friends) that path can arrive near-silent and takes
+   *  the APM's auto-gain with it, so the mic looks dead. Only turn it off deliberately. */
   echoCancellation?: boolean
 }
 
@@ -52,7 +55,7 @@ export class Recorder {
 
   async start(onLevel: (level: number) => void, vad?: VadOptions, opts: RecorderOptions = {}) {
     this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: !!opts.echoCancellation, noiseSuppression: true, autoGainControl: true },
+      audio: { channelCount: 1, echoCancellation: opts.echoCancellation ?? true, noiseSuppression: true, autoGainControl: true },
     })
     const source = ctx().createMediaStreamSource(this.stream)
     const analyser = ctx().createAnalyser()

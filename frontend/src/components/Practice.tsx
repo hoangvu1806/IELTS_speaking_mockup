@@ -138,7 +138,7 @@ export function Practice({ text, accent, strictness, position, onPrev, onNext, o
     } : undefined
     setSpeaking(false)
     try {
-      await r.start(setLevel, vad, { echoCancellation: shadow })
+      await r.start(setLevel, vad)
     } catch {
       setError('Không truy cập được micro. Hãy cho phép quyền micro trong trình duyệt.')
       return
